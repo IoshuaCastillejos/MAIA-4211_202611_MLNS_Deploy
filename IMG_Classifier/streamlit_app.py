@@ -1,64 +1,58 @@
 #  We ensure proper path handling in Python
 import Definitions
-import pandas as pd
-import matplotlib.pyplot as plt
 import streamlit as st
+import pandas as pd
 
 from src.ModelController import ModelController
 
 ### Setup and configuration
 
 st.set_page_config(
-    layout="centered", page_title="Image Classifier", page_icon="❄️"
+    layout="centered", page_title="Clasificador de ODS", page_icon="🌍"
 )
+
 
 ### My vars
 
-ctrl = ModelController()
+@st.cache_resource
+def cargar_controlador():
+    """Carga el modelo una sola vez y lo reutiliza entre interacciones."""
+    return ModelController()
+
+
+ctrl = cargar_controlador()
+
 
 ### My UI starting here
 
+st.title(" Clasificador de textos por ODS")
+st.caption(
+    "Escribe un texto y el modelo identificara con cual Objetivo de "
+    "Desarrollo Sostenible se relaciona."
+)
+
 with st.form(key="my_form"):
-
-    uploaded_file = st.file_uploader(
-        "Choose a CSV file", accept_multiple_files=False, type="csv"
+    texto = st.text_area(
+        "Texto a clasificar",
+        height=160,
+        placeholder="Ej: La energia solar y eolica son clave para reducir "
+                    "las emisiones de carbono",
     )
+    submit_button = st.form_submit_button(label="Clasificar")
 
-    submit_button = st.form_submit_button(label="Submit")
+if submit_button:
+    if not texto.strip():
+        st.warning("Escribe un texto antes de clasificar.")
+    else:
+        resultados = ctrl.predict_proba(texto)
+        ods, nombre, prob = resultados[0]
 
-if submit_button and uploaded_file is not None:
-    input_df, is_valid = ctrl.load_input_data(uploaded_file)
-    st.session_state["input_df"] = input_df if is_valid else None
+        st.caption("🎯 Resultado")
+        relevantes = [(o, n, p) for o, n, p in resultados if p > 0.20]
 
-input_df = st.session_state.get("input_df")
+        if not relevantes:
+            relevantes = resultados[:1]
 
-if input_df is not None:
-    st.caption("✅ This is your data")
-    event = st.dataframe(
-        input_df,
-        on_select="rerun",
-        selection_mode="single-row",
-        use_container_width=True,
-    )
-    st.caption("▶ Please select a row")
+        for o, n, p in relevantes:
+            st.write(f"ODS {o} - probabilidad {p:.1%}")
 
-    if event is not None and event.selection.rows:        
-        current_row_index = event.selection.rows[0]
-        current_row = input_df.iloc[current_row_index]
-
-        #TO-DO: Llama la clase de predicción para procesar la información
-        X, Y, Y_pred = None
-        #TO-DO: Obten el nombre de las clases
-        class_names = None
-
-        col1, col2 = st.columns([1, 2])  
-
-        with col1:
-            st.caption("🗣 Your Prediction")
-            #TO-DO
-
-        with col2:
-            st.caption("🎯 Your results")
-            #TO-DO
-            st.metric("Real", "<Insert Value>")
-            st.metric("Prediction", "<Insert Value>")
