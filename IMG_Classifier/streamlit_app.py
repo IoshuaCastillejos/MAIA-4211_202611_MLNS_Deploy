@@ -48,7 +48,7 @@ if submit_button:
         ods, nombre, prob = resultados[0]
 
         st.caption("🎯 Resultado")
-        relevantes = [(o, n, p) for o, n, p in resultados if p > 0.20]
+        relevantes = [(o, n, p) for o, n, p in resultados]
 
         if not relevantes:
             relevantes = resultados[:1]
